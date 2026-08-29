@@ -2096,6 +2096,152 @@ async function fetchLatestData(){
 
 }
 
+// ===============================
+// USER CURRENT LOCATION
+// ===============================
+
+let userMarker = null;
+let userCircle = null;
+
+function getUserLocation() {
+
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by this browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            console.log("User location:", latitude, longitude);
+
+            // Center map on user
+            map.setView(
+                [latitude, longitude],
+                13
+            );
+
+            // Remove previous marker
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+
+            if (userCircle) {
+                map.removeLayer(userCircle);
+            }
+
+            // User location marker
+            userMarker = L.marker(
+                [latitude, longitude]
+            )
+            .addTo(map)
+            .bindPopup(
+                "<strong>📍 Your Current Location</strong>"
+            )
+            .openPopup();
+
+            // Accuracy circle
+            userCircle = L.circle(
+                [latitude, longitude],
+                {
+                    radius: position.coords.accuracy,
+                    color: "#23c7d9",
+                    fillColor: "#23c7d9",
+                    fillOpacity: 0.12
+                }
+            ).addTo(map);
+
+            // Send location to FastAPI
+            sendLocationToServer(
+                latitude,
+                longitude
+            );
+
+        },
+
+        function(error) {
+
+            console.log(
+                "Location error:",
+                error.message
+            );
+
+            alert(
+                "Location access was denied. Please allow location permission to get local risk information."
+            );
+
+        },
+
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+async function sendLocationToServer(
+    latitude,
+    longitude
+) {
+
+    try {
+
+        const response = await fetch(
+            API_URL + "/api/location",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude
+                })
+            }
+        );
+
+        const result =
+            await response.json();
+
+        console.log(
+            "Location response:",
+            result
+        );
+
+        if (result.risk_score !== undefined) {
+
+            updateDashboard({
+                risk_score: result.risk_score,
+                risk_level: result.risk_level
+            });
+
+        }
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "Could not send location:",
+            error
+        );
+
+    }
+}
+
+window.addEventListener(
+    "load",
+    function() {
+        getUserLocation();
+    }
+);
+
 
 /* =========================
    UPDATE DASHBOARD

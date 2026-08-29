@@ -3,6 +3,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
+class LocationData(BaseModel):
+    latitude: float
+    longitude: float
+
 app = FastAPI(
     title="LandslideGuard AI",
     description="SIH26001 Landslide Early Warning System",
@@ -122,3 +126,26 @@ def receive_sensor_data(data: SensorData):
 def get_latest_data():
 
     return latest_data
+
+@app.post("/api/location")
+def receive_location(location: LocationData):
+
+    # Temporary demo risk calculation
+    # Later this will use the actual AI model,
+    # weather, terrain, rainfall and historical data.
+
+    latitude = location.latitude
+    longitude = location.longitude
+
+    # Demo risk
+    risk_score = 72
+    risk_level = "HIGH"
+
+    return {
+        "success": True,
+        "latitude": latitude,
+        "longitude": longitude,
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "message": "Location received successfully"
+    }
