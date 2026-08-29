@@ -1,10 +1,11 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
 app = FastAPI(
-    title="LandslideGuard AI API",
-    description="SIH26001 Landslide Early Warning Backend",
+    title="LandslideGuard AI",
+    description="SIH26001 Landslide Early Warning System",
     version="1.0.0"
 )
 
@@ -19,14 +20,14 @@ class SensorData(BaseModel):
 
 
 latest_data = {
-    "rainfall": 0,
-    "soil_moisture": 0,
-    "temperature": 0,
-    "humidity": 0,
-    "latitude": 0,
-    "longitude": 0,
-    "risk_score": 0,
-    "risk_level": "LOW",
+    "rainfall": 76,
+    "soil_moisture": 91,
+    "temperature": 27,
+    "humidity": 84,
+    "latitude": 25.467,
+    "longitude": 91.366,
+    "risk_score": 72,
+    "risk_level": "HIGH",
     "updated_at": None
 }
 
@@ -35,7 +36,6 @@ def calculate_risk(data: SensorData):
 
     score = 0
 
-    # Rainfall contribution
     if data.rainfall >= 80:
         score += 40
     elif data.rainfall >= 50:
@@ -43,7 +43,6 @@ def calculate_risk(data: SensorData):
     elif data.rainfall >= 20:
         score += 10
 
-    # Soil moisture contribution
     if data.soil_moisture >= 90:
         score += 35
     elif data.soil_moisture >= 75:
@@ -51,7 +50,6 @@ def calculate_risk(data: SensorData):
     elif data.soil_moisture >= 60:
         score += 10
 
-    # Keep score within 0-100
     score = min(score, 100)
 
     if score >= 80:
@@ -66,21 +64,30 @@ def calculate_risk(data: SensorData):
     return score, level
 
 
-@app.get("/")
-def home():
-    return {
-        "project": "LandslideGuard AI",
-        "status": "online",
-        "message": "SIH26001 backend is running"
-    }
+# ==========================
+# DASHBOARD
+# ==========================
 
+@app.get("/")
+def dashboard():
+    return FileResponse("dashboard/index.html")
+
+
+# ==========================
+# HEALTH CHECK
+# ==========================
 
 @app.get("/health")
 def health():
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "service": "LandslideGuard AI"
     }
 
+
+# ==========================
+# SENSOR API
+# ==========================
 
 @app.post("/api/sensor")
 def receive_sensor_data(data: SensorData):
@@ -106,6 +113,10 @@ def receive_sensor_data(data: SensorData):
         "data": latest_data
     }
 
+
+# ==========================
+# LATEST DATA
+# ==========================
 
 @app.get("/api/latest")
 def get_latest_data():
